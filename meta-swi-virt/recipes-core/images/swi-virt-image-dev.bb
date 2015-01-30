@@ -11,7 +11,11 @@ LICENSE = "MIT"
 
 inherit core-image
 
+DEPENDS += "linux-yocto"
+
 IMAGE_ROOTFS_SIZE ?= "8192"
+
+FSTYPE_VIRT ?= "ext3"
 
 IMAGE_INSTALL += "util-linux"
 IMAGE_INSTALL += "util-linux-blkid"
@@ -27,7 +31,6 @@ IMAGE_INSTALL += "lttng-ust"
 
 IMAGE_INSTALL += "iproute2"
 IMAGE_INSTALL += "iptables"
-IMAGE_INSTALL += "udev-cache"
 
 IMAGE_INSTALL += "opkg"
 IMAGE_INSTALL += "openssl"
@@ -45,10 +48,8 @@ IMAGE_INSTALL += "attr"
 
 # Required for some Developer Studio features. 
 # Not needed for production builds
-# Note that this pulls bash back in
 IMAGE_INSTALL += "openssh-sftp-server"
 IMAGE_INSTALL += "tcf-agent"
-IMAGE_INSTALL += "bash"
 
 # Add some things for dev & system intg
 IMAGE_INSTALL += "cmake"
@@ -57,13 +58,23 @@ IMAGE_INSTALL += "libopkg"
 # Add legato startup
 IMAGE_INSTALL += "legato-init"
 
+# Require to provide some extended privileges
+# to non-root processes
+IMAGE_INSTALL += "libcap-ng"
+
+# Legato
+IMAGE_INSTALL += "legato-af"
+
+# Tool to recognize the platform
+IMAGE_INSTALL += "bsinfo"
+
 # Prepare a package with kernel + hdd image
 do_prepare_virt() {
     VIRT_DIR=${WORKDIR}/virt
 
-    IMG_ARCH=x86
-    IMG_NAME=img-virt-$IMG_ARCH
+    IMG_NAME=img-virt-${VIRT_ARCH}
 
+    CFG=qemu-config
     KERNEL=kernel
     ROOTFS=rootfs.qcow2
 
@@ -79,16 +90,33 @@ do_prepare_virt() {
     mkdir -p ${DEPLOY_DIR_IMAGE}
 
     cd ${VIRT_DIR}
-    dd if=/dev/zero of=hda.raw bs=1M count=1k
-    
+
+    # QEmu Config
+    touch $CFG
+    if [[ "${VIRT_ARCH}" == "x86" ]]; then
+        echo 'CMDLINE="root=/dev/hda1 console=ttyS0 rw mem=128M"' >> $CFG
+        echo 'ARG_TARGET=""' >> $CFG
+        echo 'ROOTFS_METHOD=-hda' >> $CFG
+
+    elif [[ "${VIRT_ARCH}" == "arm" ]]; then
+        echo 'CMDLINE="root=/dev/sda1 console=ttyS0 rootwait mem=128M"' >> $CFG
+        echo 'ARG_TARGET="-M versatilepb -m 128"' >> $CFG
+        echo 'ROOTFS_METHOD=-hda' >> $CFG
+    fi
+
     # Kernel
-    cp -H ${DEPLOY_DIR_IMAGE}/bzImage ${VIRT_DIR}/kernel
+    cp -H ${ELF_KERNEL} ${VIRT_DIR}/kernel
+
+    # Hard drive
+    dd if=/dev/zero of=hda.raw bs=1M count=1k
 
     # Partitions
     touch part.sch
+    # part 1 = rootfs
     echo ",512,L,*" >> part.sch
+    # part 2 = /mnt/flash
     echo ",+,L,-" >> part.sch
-    sfdisk -u M hda.raw < part.sch
+    sfdisk -u M --force hda.raw < part.sch
 
     fdisk -l hda.raw
 
@@ -97,32 +125,35 @@ do_prepare_virt() {
     OFFSET_1=$(sfdisk -d hda.raw |grep hda.raw1 |awk '{print $4}' |sed 's/,//g')
     SIZE_1=$(sfdisk -d hda.raw |grep hda.raw1 |awk '{print $6}' |sed 's/,//g')
 
+    echo "Part 1 | of $OFFSET_1 | sz $SIZE_1"
+
     OFFSET_2=$(sfdisk -d hda.raw |grep hda.raw2 |awk '{print $4}' |sed 's/,//g')
     SIZE_2=$(sfdisk -d hda.raw |grep hda.raw2 |awk '{print $6}' |sed 's/,//g')
 
+    echo "Part 2 | of $OFFSET_2 | sz $SIZE_2"
+
     SECTOR_SZ=512
 
-    echo "$OFFSET_1 $SIZE_1"
+    ROOTFS_IMG="${PN}-${MACHINE}.${FSTYPE_VIRT}"
+    echo "Managing rootfs: ${ROOTFS_IMG}"
+    cp ${DEPLOY_DIR_IMAGE}/${ROOTFS_IMG} rootfs.${FSTYPE_VIRT}
+    e2fsck -p rootfs.${FSTYPE_VIRT}
+    resize2fs rootfs.${FSTYPE_VIRT} "$SIZE_1"s
 
-    echo "Managing rootfs"
-    cp ${DEPLOY_DIR_IMAGE}/swi-virt-image-dev-swi-virt.ext3 rootfs.ext3
-    e2fsck -p rootfs.ext3
-    resize2fs rootfs.ext3 "$SIZE_1"s
-
-    dd if=rootfs.ext3 conv=notrunc of=hda.raw bs=$SECTOR_SZ seek=$OFFSET_1 count=$SIZE_1
+    dd if=rootfs.${FSTYPE_VIRT} conv=notrunc of=hda.raw bs=$SECTOR_SZ seek=$OFFSET_1 count=$SIZE_1
 
     echo "Generating /mnt/flash"
-    dd if=/dev/zero of=flash.ext3 bs=$SECTOR_SZ count=$SIZE_2
-    mkfs.ext3 -F flash.ext3
+    dd if=/dev/zero of=flash.${FSTYPE_VIRT} bs=$SECTOR_SZ count=$SIZE_2
+    mkfs.${FSTYPE_VIRT} -F flash.${FSTYPE_VIRT}
 
-    dd if=flash.ext3 conv=notrunc of=hda.raw bs=$SECTOR_SZ seek=$OFFSET_2 count=$SIZE_2
+    dd if=flash.${FSTYPE_VIRT} conv=notrunc of=hda.raw bs=$SECTOR_SZ seek=$OFFSET_2 count=$SIZE_2
 
     fdisk -l hda.raw
 
     qemu-img convert -f raw -O qcow2 hda.raw rootfs.qcow2
 
     # release
-    tar jcf $VIRT_NAME $KERNEL $ROOTFS
+    tar jcf $VIRT_NAME $CFG $KERNEL $ROOTFS
 
     cp $VIRT_NAME ${DEPLOY_DIR_IMAGE}
 
@@ -131,3 +162,4 @@ do_prepare_virt() {
 }
 
 addtask prepare_virt after do_rootfs before do_build
+

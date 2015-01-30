@@ -9,6 +9,8 @@ SRC_URI = "file://core.tar.bz2 \
 	   file://50-log.rules \
 	   "
 
+SRC_URI += "file://compositions_sierra.patch"
+
 inherit autotools
 
 S = "${WORKDIR}/core"
@@ -18,7 +20,7 @@ ALLOW_EMPTY_${PN} = "1"
 INITSCRIPT_PACKAGES = "${PN}-adbd ${PN}-usb"
 
 INITSCRIPT_NAME_${PN}-adbd = "adbd"
-INITSCRIPT_PARAMS_${PN}-adbd = "start 42 S 2 3 4 5 S . stop 80 0 1 6 ."
+INITSCRIPT_PARAMS_${PN}-adbd = "start 42 S . stop 58 S ."
 INITSCRIPT_NAME_${PN}-usb = "usb"
 INITSCRIPT_PARAMS_${PN}-usb = "start 41 S ."
 
@@ -41,10 +43,7 @@ do_install_append() {
    install -m 0755 ${S}/usb/usb_composition -D ${D}${bindir}/
    install -d ${D}${bindir}/usb/compositions/
    install -m 0755 ${S}/usb/compositions/* -D ${D}${bindir}/usb/compositions/
-# SWISTART don't load QCT composition
    ln -s /usr/bin/usb/compositions/sierra ${D}${bindir}/usb/boot_hsusb_composition
-#   ln -s /usr/bin/usb/compositions/9025 ${D}${bindir}/usb/boot_hsusb_composition
-# SWISTOP
    ln -s /usr/bin/usb/compositions/sierra ${D}${bindir}/usb/boot_hsic_composition
 }
 
