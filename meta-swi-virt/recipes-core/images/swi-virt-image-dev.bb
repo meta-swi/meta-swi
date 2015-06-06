@@ -21,6 +21,7 @@ IMAGE_INSTALL += "util-linux"
 IMAGE_INSTALL += "util-linux-blkid"
 IMAGE_INSTALL += "util-linux-mount"
 IMAGE_INSTALL += "nfs-utils-client"
+IMAGE_INSTALL += "procps"
 
 # Add some extra packages for tool integration
 IMAGE_INSTALL += "dropbear"
@@ -60,7 +61,7 @@ IMAGE_INSTALL += "legato-init"
 
 # Require to provide some extended privileges
 # to non-root processes
-IMAGE_INSTALL += "libcap-ng"
+IMAGE_INSTALL += "libcap"
 
 # Legato
 IMAGE_INSTALL += "legato-af"

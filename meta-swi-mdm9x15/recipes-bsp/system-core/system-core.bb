@@ -1,19 +1,19 @@
 DESCRIPTION = "Android system/core components"
-HOMEPAGE = "http://developer.android.com/"
+HOMEPAGE = "https://www.codeaurora.org/cgit/external/gigabyte/platform/system/core/"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/${LICENSE};md5=89aea4e17d99a7cacdbeed46a0096b10"
 
-PR = "r0"
+PR = "r1"
 
-SRC_URI = "file://core.tar.bz2 \
-	   file://50-log.rules \
-	   "
-
-SRC_URI += "file://compositions_sierra.patch"
+SRC_URI = "git://codeaurora.org/platform/system/core;tag=M9615AAAARNLZA1611263;branch=penguin \
+           file://50-log.rules \
+           file://composition-sierra \
+           file://0001-Fix-libmincrypt-include-path.patch \
+           "
 
 inherit autotools
 
-S = "${WORKDIR}/core"
+S = "${WORKDIR}/git"
 
 ALLOW_EMPTY_${PN} = "1"
 
@@ -43,6 +43,7 @@ do_install_append() {
    install -m 0755 ${S}/usb/usb_composition -D ${D}${bindir}/
    install -d ${D}${bindir}/usb/compositions/
    install -m 0755 ${S}/usb/compositions/* -D ${D}${bindir}/usb/compositions/
+   install -m 0755 ${WORKDIR}/composition-sierra -D ${D}${bindir}/usb/compositions/sierra
    ln -s /usr/bin/usb/compositions/sierra ${D}${bindir}/usb/boot_hsusb_composition
    ln -s /usr/bin/usb/compositions/sierra ${D}${bindir}/usb/boot_hsic_composition
 }
