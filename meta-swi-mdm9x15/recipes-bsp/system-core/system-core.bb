@@ -5,7 +5,9 @@ LIC_FILES_CHKSUM = "file://${COREBASE}/meta/files/common-licenses/${LICENSE};md5
 
 PR = "r1"
 
-SRC_URI = "git://codeaurora.org/platform/system/core;tag=M9615AAAARNLZA1611263;branch=penguin \
+# Tag M9615AAAARNLZA1611263
+SRCREV = "7b371cbcfc38e1485f31f8e3087a6a33211e7da2"
+SRC_URI = "git://codeaurora.org/platform/system/core;branch=penguin \
            file://50-log.rules \
            file://composition-sierra \
            file://0001-Fix-libmincrypt-include-path.patch \
@@ -22,9 +24,11 @@ INITSCRIPT_PACKAGES = "${PN}-adbd ${PN}-usb"
 INITSCRIPT_NAME_${PN}-adbd = "adbd"
 INITSCRIPT_PARAMS_${PN}-adbd = "start 96 S . stop 58 S ."
 INITSCRIPT_NAME_${PN}-usb = "usb"
-INITSCRIPT_PARAMS_${PN}-usb = "start 41 S ."
+INITSCRIPT_PARAMS_${PN}-usb = "start 09 S ."
 
 inherit update-rc.d
+
+EXTRA_OEMAKE = "INCLUDES='-I${S}/include'"
 
 do_install_append() {
    install -m 0755 -d ${D}${includedir}/cutils
@@ -37,7 +41,7 @@ do_install_append() {
 
    # Prefer adbd to be located in /sbin for historical reasons
    rm ${D}${bindir}/adbd
-   install -m 0755 ${S}/adb/adbd -D ${D}/sbin/adbd
+   install -m 0755 ${S}/../build/adb/adbd -D ${D}/sbin/adbd
    install -m 0755 ${S}/adb/start_adbd -D ${D}${sysconfdir}/init.d/adbd
    install -m 0755 ${S}/usb/start_usb -D ${D}${sysconfdir}/init.d/usb
    install -m 0755 ${S}/usb/usb_composition -D ${D}${bindir}/

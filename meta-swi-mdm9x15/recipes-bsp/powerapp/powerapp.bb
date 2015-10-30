@@ -12,7 +12,9 @@ ${LICENSE};md5=89aea4e17d99a7cacdbeed46a0096b10"
 
 PR = "r0"
 
-SRC_URI = "git://codeaurora.org/platform/system/core;tag=M9615AAAARNLZA1611263;branch=penguin \
+# Tag M9615AAAARNLZA1611263
+SRCREV = "7b371cbcfc38e1485f31f8e3087a6a33211e7da2"
+SRC_URI = "git://codeaurora.org/platform/system/core;branch=penguin \
            file://0001-mdm9x15-Remove-startup-errors.patch;striplevel=2 \
            file://0002-trac-1219-Switch-sysV-init-to-busybox-style-init.patch"
 
@@ -28,7 +30,7 @@ inherit autotools
 S = "${WORKDIR}/git/powerapp"
 
 do_install() {
-        install -m 0755 ${S}/powerapp -D ${D}/sbin/powerapp
+        install -m 0755 ${WORKDIR}/build/powerapp -D ${D}/sbin/powerapp
         install -m 0755 ${S}/reboot -D ${D}${sysconfdir}/init.d/reboot
         install -m 0755 ${S}/reboot-bootloader -D ${D}/sbin/reboot-bootloader
         install -m 0755 ${S}/reboot-recovery -D ${D}/sbin/reboot-recovery

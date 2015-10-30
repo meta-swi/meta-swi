@@ -2,21 +2,21 @@ DESCRIPTION = "userspace tests"
 LIC_FILES_CHKSUM = "file://spidev_test.c;beginline=1;endline=12;md5=5f6a6ca88bef579b2b82d58218f9ee3a"
 LICENSE = "GPLv2+"
 
-inherit autotools
 
 PR = "r0"
 PV = "0.1"
 
-DEPENDS = "gdb-cross i2c-tools"
+DEPENDS = "gdb-cross-arm i2c-tools"
 
 SRC_URI = "file://${BPN}-${PV}/"
 
+CC += " -I${STAGING_DIR_TARGET}/usr/src/kernel/{include/uapi,tools/include} "
 
 do_compile () {
         ${CC} -o spidev_test  spidev_test.c
-        ${CC} -I ${STAGING_DIR_HOST}/usr/src/kernel/include -o sierra_spidev_test  sierra_spidev_test.c
+        ${CC} -o sierra_spidev_test  sierra_spidev_test.c
         ${CC} -o i2cdev_test  i2cdev_test.c
-        ${CC} -I ${STAGING_DIR_HOST}/usr/src/kernel/include -o sierra_i2cdev_test  sierra_i2cdev_test.c
+        ${CC} -o sierra_i2cdev_test  sierra_i2cdev_test.c
         ${CC} -o keypad_test  keypad_test.c
         ${CC} -g -o hello     hello.c
         ${CC} -o mem_leak     mem_leak.c

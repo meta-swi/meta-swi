@@ -18,6 +18,17 @@ TARGET_LDFLAGS = ""
 
 do_configure[noexec] = "1"
 
+do_generate_version() {
+    make version
+
+    # Remove phony from 'build_version' or 'version' targets to make sure
+    # that the version will not change
+    sed -i 's/.PHONY: version//g' ${S}/Makefile
+    sed -i 's/.PHONY: build_version//g' ${S}/Makefile
+}
+
+addtask generate_version before do_compile after do_unpack
+
 do_prepare_tools[depends] = "legato-tools:do_populate_sysroot"
 do_prepare_tools() {
     # Remove 'tools' target
@@ -43,7 +54,7 @@ do_prepare_tools() {
     ln -sf ${S}/framework/tools/ifgen/ifgen ifgen
 }
 
-addtask prepare_tools before do_compile after do_unpack
+addtask prepare_tools before do_compile after do_generate_version
 
 compile_target() {
     make $LEGATO_TARGET
@@ -57,6 +68,11 @@ do_compile_prepend() {
         git submodule init
         git submodule update
     fi
+
+    # If there is some unexpected pending changes, regenerate version file
+    if git status -s | grep -ve '\(Makefile\|proprietary.*\|tools\)'; then
+        do_generate_version
+    fi
 }
 
 do_install() {
@@ -65,6 +81,8 @@ do_install() {
     # version file
     install ${S}/version ${D}/opt/legato/
     LEGATO_VERSION=$(cat ${S}/version)
+    install -d ${D}/usr/share/legato/
+    install ${S}/version ${D}/usr/share/legato/
 
     # start-up scripts
     install -d ${D}/opt/legato/startupDefaults
@@ -123,4 +141,6 @@ FILES_${PN} += "opt/legato/*"
 FILES_${PN} += "usr/local/*"
 FILES_${PN} += "mnt/legato/*"
 
-INSANE_SKIP_${PN} = "installed-vs-shipped"
+INSANE_SKIP_${PN} = "installed-vs-shipped dev-deps"
+
+

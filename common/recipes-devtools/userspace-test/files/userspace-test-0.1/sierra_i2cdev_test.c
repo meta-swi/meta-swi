@@ -19,7 +19,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/types.h>
-#include <linux/i2c/sierra_i2c.h>
+#include <linux/i2c.h>
+#include <linux/sierra_i2cdev.h>
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
@@ -106,7 +107,7 @@ int main(int argc, char *argv[])
 	}
 
 
-	if (ioctl(fd, SWI_IOCTL_I2C_FREQ_CONFIG, freq) < 0) {
+	if (ioctl(fd, SWI_IOCTL_I2C_FREQ_CONFIG, &freq) < 0) {
 		printf("Failed to acquire bus access and/or talk to slave.\n");
 		/* ERROR HANDLING; you can check errno to see what went wrong */
 		exit(1);
